@@ -1,0 +1,66 @@
+package com.moiseyev.issuetracker.exception;
+
+import jakarta.validation.ValidationException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+@Slf4j
+@ControllerAdvice
+public class GlobalExceptionHandler {
+  @ExceptionHandler(PriorityNotFoundException.class)
+  public ResponseEntity<String> priorityNotFoundException(PriorityNotFoundException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+  }
+
+  @ExceptionHandler(StatusNotFoundException.class)
+  public ResponseEntity<String> statusNotFoundException(StatusNotFoundException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+  }
+
+  @ExceptionHandler(UserNotFoundException.class)
+  public ResponseEntity<String> userNotFoundException(UserNotFoundException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+  }
+
+  @ExceptionHandler(LoginAlreadyExistsException.class)
+  public ResponseEntity<String> loginAlreadyExistsExceptionHandler(LoginAlreadyExistsException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+  }
+
+  @ExceptionHandler(EmailAlreadyExistsException.class)
+  public ResponseEntity<String> emailAlreadyExistsException(EmailAlreadyExistsException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+  }
+
+  @ExceptionHandler(RoleNotFoundException.class)
+  public ResponseEntity<String> roleNotFoundException(RoleNotFoundException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+  }
+
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<String> validationExceptionHandler(ValidationException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(RuntimeException.class)
+  public ResponseEntity<String> runtimeExceptionHandler(RuntimeException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<String> exceptionHandler(Exception e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+  }
+}
