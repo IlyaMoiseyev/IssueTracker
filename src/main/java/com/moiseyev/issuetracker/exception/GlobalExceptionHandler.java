@@ -10,6 +10,18 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+  @ExceptionHandler(EmptyIssueListException.class)
+  public ResponseEntity<String> emptyIssueListException(EmptyIssueListException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+  }
+
+  @ExceptionHandler(IssueNotFoundException.class)
+  public ResponseEntity<String> issueNotFoudException(IssueNotFoundException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+  }
+
   @ExceptionHandler(PriorityNotFoundException.class)
   public ResponseEntity<String> priorityNotFoundException(PriorityNotFoundException e) {
     log.error("ExceptionHandler: " + e);
