@@ -18,6 +18,8 @@ public class IssueUpdateDto {
 
   private String statusType;
 
+  private String priorityType;
+
   @NotNull
   private Long reporterId;
 

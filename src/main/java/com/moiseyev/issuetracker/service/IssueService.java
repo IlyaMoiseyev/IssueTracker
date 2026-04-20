@@ -2,6 +2,7 @@ package com.moiseyev.issuetracker.service;
 
 import com.moiseyev.issuetracker.exception.EmptyIssueListException;
 import com.moiseyev.issuetracker.exception.IssueNotFoundException;
+import com.moiseyev.issuetracker.exception.IssueUpdateException;
 import com.moiseyev.issuetracker.model.dto.IssueCreateDto;
 import com.moiseyev.issuetracker.model.dto.IssueUpdateDto;
 import com.moiseyev.issuetracker.model.entity.Issue;
@@ -24,16 +25,19 @@ public class IssueService {
   private final IssueStatusService issueStatusService;
   private final IssuePriorityService issuePriorityService;
   private final UserService userService;
+  private final IssueHistoryService issueHistoryService;
 
   @Autowired
   public IssueService(IssueRepository issueRepository,
                       IssueStatusService issueStatusService,
                       IssuePriorityService issuePriorityService,
-                      UserService userService) {
+                      UserService userService,
+                      IssueHistoryService issueHistoryService) {
     this.issueRepository = issueRepository;
     this.issueStatusService = issueStatusService;
     this.issuePriorityService = issuePriorityService;
     this.userService = userService;
+    this.issueHistoryService = issueHistoryService;
   }
 
   public List<Issue> getAllIssues() {
@@ -70,25 +74,55 @@ public class IssueService {
 
   @Transactional
   public Issue updateIssue(IssueUpdateDto issueUpdateDto) {
-    Issue updatedIssue = getIssueById(issueUpdateDto.getId());
+    Issue issue = getIssueById(issueUpdateDto.getId());
+    boolean hasChanges = false;
 
-    if (issueUpdateDto.getTitle() != null && !issueUpdateDto.getTitle().isBlank()) {
-      updatedIssue.setTitle(issueUpdateDto.getTitle());
+    if ((issueUpdateDto.getTitle() != null && !issueUpdateDto.getTitle().isBlank())
+            && (!issue.getTitle().equals(issueUpdateDto.getTitle()))) {
+      issueHistoryService.recordTitleHistory(issue, issueUpdateDto);
+      issue.setTitle(issueUpdateDto.getTitle());
+      hasChanges = true;
     }
-    if (issueUpdateDto.getDescription() != null && !issueUpdateDto.getDescription().isBlank()) {
-      updatedIssue.setDescription(issueUpdateDto.getDescription());
+    if ((issueUpdateDto.getDescription() != null && !issueUpdateDto.getDescription().isBlank()) &&
+            (!issue.getDescription().equals(issueUpdateDto.getDescription()))) {
+      issueHistoryService.recordDescriptionHistory(issue, issueUpdateDto);
+      issue.setDescription(issueUpdateDto.getDescription());
+      hasChanges = true;
     }
-    if (issueUpdateDto.getStatusType() != null && !issueUpdateDto.getStatusType().isBlank()) {
-      updatedIssue.setStatus(issueStatusService.getIssueStatusByName(issueUpdateDto.getStatusType()));
+    if ((issueUpdateDto.getStatusType() != null && !issueUpdateDto.getStatusType().isBlank()) &&
+            (!issue.getStatus().equals(issueStatusService.getIssueStatusByName(issueUpdateDto.getStatusType())))) {
+      issueHistoryService.recordStatusHistory(issue, issueUpdateDto);
+      issue.setStatus(issueStatusService.getIssueStatusByName(issueUpdateDto.getStatusType()));
+      hasChanges = true;
     }
-    if (issueUpdateDto.getReporterId() != null) {
-      updatedIssue.setReporter(userService.getUserById(issueUpdateDto.getReporterId()));
+    if ((issueUpdateDto.getPriorityType() != null && !issueUpdateDto.getPriorityType().isBlank()) &&
+            (!issue.getPriority().equals(issuePriorityService.getIssuePriorityByName(issueUpdateDto.getPriorityType())))) {
+      issueHistoryService.recordPriorityHistory(issue, issueUpdateDto);
+      issue.setPriority(issuePriorityService.getIssuePriorityByName(issueUpdateDto.getPriorityType()));
+      hasChanges = true;
+    }
+    if (issueUpdateDto.getReporterId() != null && !issue.getReporter().getId().equals(issueUpdateDto.getReporterId())) {
+      issueHistoryService.recordReporterIdHistory(issue, issueUpdateDto);
+      issue.setReporter(userService.getUserById(issueUpdateDto.getReporterId()));
+      hasChanges = true;
     }
     if (issueUpdateDto.getAssigneeId() != null) {
-      updatedIssue.setAssignee(userService.getUserById(issueUpdateDto.getAssigneeId()));
+      User assigneeFromDto = userService.getUserById(issueUpdateDto.getAssigneeId());
+      if (issue.getAssignee() != null) {
+        if (!assigneeFromDto.getId().equals(issue.getAssignee().getId())) {
+          issue.setAssignee(assigneeFromDto);
+        }
+      } else {
+        issue.setAssignee(assigneeFromDto);
+      }
+      issueHistoryService.recordAssigneeIdHistory(issue, issueUpdateDto);
+      hasChanges = true;
     }
-    updatedIssue.setUpdatedAt(Instant.now());
-    return issueRepository.save(updatedIssue);
+    if (!hasChanges) {
+      throw new IssueUpdateException(issue.getId());
+    }
+    issue.setUpdatedAt(Instant.now());
+    return issueRepository.save(issue);
   }
 
   public void deleteIssueById(Long id) {
