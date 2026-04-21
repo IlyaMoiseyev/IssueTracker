@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+  @ExceptionHandler(CommentNotFoundException.class)
+  public ResponseEntity<String> commentNotFoundException(CommentNotFoundException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+  }
+
   @ExceptionHandler(IssueUpdateException.class)
   public ResponseEntity<String> issueUpdateException(IssueUpdateException e) {
     log.error("ExceptionHandler: " + e);
