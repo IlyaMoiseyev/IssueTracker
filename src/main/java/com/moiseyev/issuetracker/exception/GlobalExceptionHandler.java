@@ -52,6 +52,12 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
   }
 
+  @ExceptionHandler(UserUpdateException.class)
+  public ResponseEntity<String> userUpdateException(UserUpdateException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+  }
+
   @ExceptionHandler(UserNotFoundException.class)
   public ResponseEntity<String> userNotFoundException(UserNotFoundException e) {
     log.error("ExceptionHandler: " + e);
