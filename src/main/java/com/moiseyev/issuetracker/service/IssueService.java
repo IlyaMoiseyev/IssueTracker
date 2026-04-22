@@ -3,13 +3,17 @@ package com.moiseyev.issuetracker.service;
 import com.moiseyev.issuetracker.exception.EmptyIssueListException;
 import com.moiseyev.issuetracker.exception.IssueNotFoundException;
 import com.moiseyev.issuetracker.exception.IssueUpdateException;
+import com.moiseyev.issuetracker.exception.UserNotFoundException;
 import com.moiseyev.issuetracker.model.dto.IssueCreateDto;
+import com.moiseyev.issuetracker.model.dto.IssueResponseDto;
 import com.moiseyev.issuetracker.model.dto.IssueUpdateDto;
 import com.moiseyev.issuetracker.model.entity.Issue;
 import com.moiseyev.issuetracker.model.entity.IssuePriority;
 import com.moiseyev.issuetracker.model.entity.IssueStatus;
 import com.moiseyev.issuetracker.model.entity.User;
+import com.moiseyev.issuetracker.model.mapper.IssueMapper;
 import com.moiseyev.issuetracker.repository.IssueRepository;
+import com.moiseyev.issuetracker.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,39 +28,49 @@ public class IssueService {
   private final IssueRepository issueRepository;
   private final IssueStatusService issueStatusService;
   private final IssuePriorityService issuePriorityService;
-  private final UserService userService;
+  private final UserRepository userRepository;
   private final IssueHistoryService issueHistoryService;
+  private final IssueMapper issueMapper;
 
   @Autowired
   public IssueService(IssueRepository issueRepository,
                       IssueStatusService issueStatusService,
                       IssuePriorityService issuePriorityService,
-                      UserService userService,
-                      IssueHistoryService issueHistoryService) {
+                      UserRepository userRepository,
+                      IssueHistoryService issueHistoryService, IssueMapper issueMapper) {
     this.issueRepository = issueRepository;
     this.issueStatusService = issueStatusService;
     this.issuePriorityService = issuePriorityService;
-    this.userService = userService;
+    this.userRepository = userRepository;
     this.issueHistoryService = issueHistoryService;
+    this.issueMapper = issueMapper;
   }
 
-  public List<Issue> getAllIssues() {
-    List<Issue> issues = issueRepository.findAll();
+  public List<IssueResponseDto> getAllIssues() {
+    List<IssueResponseDto> issues = issueRepository
+            .findAll()
+            .stream()
+            .map(issueMapper::toResponseDto)
+            .toList();
     if (issues.isEmpty()) throw new EmptyIssueListException(issues.size());
-    return issueRepository.findAll();
+    return issues;
   }
 
-  public Issue getIssueById(Long id) {
-    return issueRepository.findById(id).orElseThrow(() -> new IssueNotFoundException(id));
+  public IssueResponseDto getIssueById(Long id) {
+    Issue issue = issueRepository.findById(id).orElseThrow(() -> new IssueNotFoundException(id));
+    return issueMapper.toResponseDto(issue);
   }
 
   @Transactional
-  public Issue createIssue(IssueCreateDto issueCreateDto) {
+  public IssueResponseDto createIssue(IssueCreateDto issueCreateDto) {
     IssueStatus status = issueStatusService.getIssueStatusByName(issueCreateDto.getStatus());
     IssuePriority priority = issuePriorityService.getIssuePriorityByName(issueCreateDto.getPriority());
-    User reporter = userService.getUserById(issueCreateDto.getReporterId());
+    User reporter = userRepository
+            .findById(issueCreateDto.getReporterId())
+            .orElseThrow(() -> new UserNotFoundException(issueCreateDto.getReporterId()));
     User assignee = issueCreateDto.getAssigneeId() != null
-            ? userService.getUserById(issueCreateDto.getAssigneeId())
+            ? userRepository.findById(issueCreateDto.getAssigneeId())
+            .orElseThrow(() -> new UserNotFoundException(issueCreateDto.getAssigneeId()))
             : null;
 
     Issue issue = new Issue();
@@ -69,12 +83,14 @@ public class IssueService {
     issue.setCreatedAt(Instant.now());
     issue.setUpdatedAt(Instant.now());
 
-    return issueRepository.save(issue);
+    return issueMapper.toResponseDto(issueRepository.save(issue));
   }
 
   @Transactional
-  public Issue updateIssue(IssueUpdateDto issueUpdateDto) {
-    Issue issue = getIssueById(issueUpdateDto.getId());
+  public IssueResponseDto updateIssue(IssueUpdateDto issueUpdateDto) {
+    Issue issue = issueRepository
+            .findById(issueUpdateDto.getId())
+            .orElseThrow(() -> new IssueNotFoundException(issueUpdateDto.getId()));
     boolean hasChanges = false;
 
     if ((issueUpdateDto.getTitle() != null && !issueUpdateDto.getTitle().isBlank())
@@ -103,11 +119,14 @@ public class IssueService {
     }
     if (issueUpdateDto.getReporterId() != null && !issue.getReporter().getId().equals(issueUpdateDto.getReporterId())) {
       issueHistoryService.recordReporterIdHistory(issue, issueUpdateDto);
-      issue.setReporter(userService.getUserById(issueUpdateDto.getReporterId()));
+      User reporter = userRepository.findById(issueUpdateDto.getReporterId())
+              .orElseThrow(() -> new UserNotFoundException(issueUpdateDto.getReporterId()));
+      issue.setReporter(reporter);
       hasChanges = true;
     }
     if (issueUpdateDto.getAssigneeId() != null) {
-      User assigneeFromDto = userService.getUserById(issueUpdateDto.getAssigneeId());
+      User assigneeFromDto = userRepository.findById(issueUpdateDto.getAssigneeId())
+              .orElseThrow(() -> new UserNotFoundException(issueUpdateDto.getAssigneeId()));
       if (issue.getAssignee() != null) {
         if (!assigneeFromDto.getId().equals(issue.getAssignee().getId())) {
           issue.setAssignee(assigneeFromDto);
@@ -122,11 +141,13 @@ public class IssueService {
       throw new IssueUpdateException(issue.getId());
     }
     issue.setUpdatedAt(Instant.now());
-    return issueRepository.save(issue);
+    return issueMapper.toResponseDto(issueRepository.save(issue));
   }
 
   public void deleteIssueById(Long id) {
-    getIssueById(id);
-    issueRepository.deleteById(id);
+    Issue issue = issueRepository
+            .findById(id)
+            .orElseThrow(() -> new IssueNotFoundException(id));
+    issueRepository.delete(issue);
   }
 }

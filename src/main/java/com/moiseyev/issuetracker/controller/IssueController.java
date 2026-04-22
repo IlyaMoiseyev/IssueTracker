@@ -1,8 +1,8 @@
 package com.moiseyev.issuetracker.controller;
 
 import com.moiseyev.issuetracker.model.dto.IssueCreateDto;
+import com.moiseyev.issuetracker.model.dto.IssueResponseDto;
 import com.moiseyev.issuetracker.model.dto.IssueUpdateDto;
-import com.moiseyev.issuetracker.model.entity.Issue;
 import com.moiseyev.issuetracker.service.IssueService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -34,52 +34,52 @@ public class IssueController {
   }
 
   @GetMapping
-  public ResponseEntity<List<Issue>> getAllIssues() {
-    log.info("IN: getAllIssues().");
-    List<Issue> issueList = issueService.getAllIssues();
-    log.info("OUT: getAllIssues().  Result: size{}", issueList.size());
+  public ResponseEntity<List<IssueResponseDto>> getAllIssues() {
+    log.info("IN: getAllIssues()");
+    List<IssueResponseDto> issueList = issueService.getAllIssues();
+    log.info("OUT: getAllIssues().  Result: list size = {} ", issueList.size());
     return ResponseEntity.ok(issueList);
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<Issue> getIssueById(@PathVariable Long id) {
+  public ResponseEntity<IssueResponseDto> getIssueById(@PathVariable Long id) {
     log.info("IN: getIssueById(). Params: id = {}", id);
-    Issue issue = issueService.getIssueById(id);
+    IssueResponseDto issue = issueService.getIssueById(id);
     log.info("OUT: getIssueById(). Result: {}", issue);
     return ResponseEntity.ok(issue);
   }
 
   @PostMapping
-  public ResponseEntity<Issue> createIssue(@RequestBody @Valid IssueCreateDto issueCreateDto,
-                                           BindingResult bindingResult) {
+  public ResponseEntity<IssueResponseDto> createIssue(@RequestBody @Valid IssueCreateDto issueCreateDto,
+                                                      BindingResult bindingResult) {
     if (bindingResult.hasErrors()) {
       log.warn("Validation failed: {}", bindingResult.getAllErrors());
       return ResponseEntity.badRequest().build();
     }
 
     log.info("IN: createIssue()");
-    Issue createdIssue = issueService.createIssue(issueCreateDto);
+    IssueResponseDto issueResponseDto = issueService.createIssue(issueCreateDto);
     URI location = ServletUriComponentsBuilder
             .fromCurrentRequest()
             .path("/{id}")
-            .buildAndExpand(createdIssue.getId())
+            .buildAndExpand(issueResponseDto.getId())
             .toUri();
-    log.info("OUT: createIssue(). Result: created issue with id = {}", createdIssue.getId());
-    return ResponseEntity.created(location).body(createdIssue);
+    log.info("OUT: createIssue(). Result: created issue with id = {}", issueResponseDto.getId());
+    return ResponseEntity.created(location).body(issueResponseDto);
   }
 
   @PutMapping
-  public ResponseEntity<Issue> updateIssue(@RequestBody @Valid IssueUpdateDto issueUpdateDto,
-                                           BindingResult bindingResult) {
+  public ResponseEntity<IssueResponseDto> updateIssue(@RequestBody @Valid IssueUpdateDto issueUpdateDto,
+                                                      BindingResult bindingResult) {
     if (bindingResult.hasErrors()) {
       log.warn("Validation failed: {}", bindingResult.getAllErrors());
       return ResponseEntity.badRequest().build();
     }
 
     log.info("IN: updateIssue(). Params: id = {}", issueUpdateDto.getId());
-    Issue updatedIssue = issueService.updateIssue(issueUpdateDto);
-    log.info("OUT: updateIssue(). Result: issue with id = {} updated", updatedIssue.getId());
-    return ResponseEntity.ok(updatedIssue);
+    IssueResponseDto issueResponseDto = issueService.updateIssue(issueUpdateDto);
+    log.info("OUT: updateIssue(). Result: issue with id = {} updated", issueResponseDto.getId());
+    return ResponseEntity.ok(issueResponseDto);
   }
 
   @DeleteMapping("/{id}")
