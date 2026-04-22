@@ -1,6 +1,6 @@
 package com.moiseyev.issuetracker.controller;
 
-import com.moiseyev.issuetracker.model.entity.IssueHistory;
+import com.moiseyev.issuetracker.model.dto.IssueHistoryResponseDto;
 import com.moiseyev.issuetracker.service.IssueHistoryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +14,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/issue/history")
+@RequestMapping("/history")
 public class IssueHistoryController {
   private final IssueHistoryService issueHistoryService;
 
@@ -23,10 +23,26 @@ public class IssueHistoryController {
     this.issueHistoryService = issueHistoryService;
   }
 
-  @GetMapping("/{issueId}")
-  public ResponseEntity<List<IssueHistory>> getAllHistoryForIssue(@PathVariable Long issueId) {
+  @GetMapping
+  public ResponseEntity<List<IssueHistoryResponseDto>> getAllHistoryRecords() {
+    log.info("IN: getAllHistoryRecords()");
+    List<IssueHistoryResponseDto> historyRecordsList = issueHistoryService.getAllHistoryRecords();
+    log.info("OUT: getAllHistoryRecords(). Result: size {}", historyRecordsList.size());
+    return ResponseEntity.ok(historyRecordsList);
+  }
+
+  @GetMapping("{historyId}")
+  public ResponseEntity<IssueHistoryResponseDto> getHistoryById(@PathVariable Long historyId) {
+    log.info("IN: getHistoryById(). Params: historyId = {}", historyId);
+    IssueHistoryResponseDto issueHistoryResponseDto = issueHistoryService.getHistoryById(historyId);
+    log.info("OUT: getHistoryById(). Result: {}", issueHistoryResponseDto);
+    return ResponseEntity.ok(issueHistoryResponseDto);
+  }
+
+  @GetMapping("/issue/{issueId}")
+  public ResponseEntity<List<IssueHistoryResponseDto>> getAllHistoryForIssue(@PathVariable Long issueId) {
     log.info("IN: getAllHistoryForIssue(). Params: issueId = {}", issueId);
-    List<IssueHistory> issueHistoryList = issueHistoryService.getHistoryForIssue(issueId);
+    List<IssueHistoryResponseDto> issueHistoryList = issueHistoryService.getHistoryForIssue(issueId);
     log.info("OUT: getAllHistoryForIssue(). Result: listSize = {}", issueHistoryList.size());
     return ResponseEntity.ok(issueHistoryList);
   }

@@ -2,12 +2,16 @@ package com.moiseyev.issuetracker.service;
 
 import com.moiseyev.issuetracker.exception.IssueHistoryNotFoundException;
 
+import com.moiseyev.issuetracker.exception.UserNotFoundException;
 import com.moiseyev.issuetracker.model.dto.IssueHistoryRecordDto;
+import com.moiseyev.issuetracker.model.dto.IssueHistoryResponseDto;
 import com.moiseyev.issuetracker.model.dto.IssueUpdateDto;
 import com.moiseyev.issuetracker.model.entity.Issue;
 import com.moiseyev.issuetracker.model.entity.IssueHistory;
 import com.moiseyev.issuetracker.model.entity.User;
+import com.moiseyev.issuetracker.model.mapper.IssueHistoryMapper;
 import com.moiseyev.issuetracker.repository.IssueHistoryRepository;
+import com.moiseyev.issuetracker.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,18 +24,41 @@ import java.util.List;
 @Service
 public class IssueHistoryService {
   private final IssueHistoryRepository issueHistoryRepository;
-  private final UserService userService;
+  private final UserRepository userRepository;
+  private final IssueHistoryMapper issueHistoryMapper;
 
   @Autowired
   public IssueHistoryService(IssueHistoryRepository issueHistoryRepository,
-                             UserService userService) {
+                             UserRepository userRepository, IssueHistoryMapper issueHistoryMapper) {
     this.issueHistoryRepository = issueHistoryRepository;
-    this.userService = userService;
+    this.userRepository = userRepository;
+    this.issueHistoryMapper = issueHistoryMapper;
   }
 
-  public List<IssueHistory> getHistoryForIssue(Long issueId) {
-    List<IssueHistory> issueHistoryList = issueHistoryRepository
-            .findByIssueIdOrderByChangedByDesc(issueId);
+  public List<IssueHistoryResponseDto> getAllHistoryRecords() {
+    List<IssueHistoryResponseDto> allHistoryRecords = issueHistoryRepository
+            .findAll()
+            .stream()
+            .map(issueHistoryMapper::toResponseDto).toList();
+    if (allHistoryRecords.isEmpty()) {
+      throw new IssueHistoryNotFoundException("No history records found");
+    }
+    return allHistoryRecords;
+  }
+
+  public IssueHistoryResponseDto getHistoryById(Long historyId) {
+    IssueHistory issueHistory = issueHistoryRepository
+            .findById(historyId)
+            .orElseThrow(() -> new IssueHistoryNotFoundException("History with id = " + historyId + " not found"));
+    return issueHistoryMapper.toResponseDto(issueHistory);
+  }
+
+  public List<IssueHistoryResponseDto> getHistoryForIssue(Long issueId) {
+    List<IssueHistoryResponseDto> issueHistoryList = issueHistoryRepository
+            .findByIssueIdOrderByChangedByDesc(issueId)
+            .stream()
+            .map(issueHistoryMapper::toResponseDto)
+            .toList();
     if (issueHistoryList.isEmpty()) {
       throw new IssueHistoryNotFoundException(issueId);
     }
@@ -40,7 +67,9 @@ public class IssueHistoryService {
 
   @Transactional
   public void recordChange(Issue issue, IssueHistoryRecordDto issueHistoryRecordDto) {
-    User changedBy = userService.getUserById(issueHistoryRecordDto.getChangedBy());
+    User changedBy = userRepository
+            .findById(issueHistoryRecordDto.getChangedBy())
+            .orElseThrow(() -> new UserNotFoundException(issueHistoryRecordDto.getChangedBy()));
 
     IssueHistory issueHistory = new IssueHistory();
     issueHistory.setIssue(issue);
