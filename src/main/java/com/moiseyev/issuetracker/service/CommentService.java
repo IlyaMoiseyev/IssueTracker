@@ -1,6 +1,8 @@
 package com.moiseyev.issuetracker.service;
 
 import com.moiseyev.issuetracker.exception.CommentNotFoundException;
+import com.moiseyev.issuetracker.exception.IssueNotFoundException;
+import com.moiseyev.issuetracker.exception.UserNotFoundException;
 import com.moiseyev.issuetracker.model.dto.CommentCreateDto;
 import com.moiseyev.issuetracker.model.dto.CommentResponseDto;
 import com.moiseyev.issuetracker.model.dto.CommentUpdateDto;
@@ -9,6 +11,8 @@ import com.moiseyev.issuetracker.model.entity.Issue;
 import com.moiseyev.issuetracker.model.entity.User;
 import com.moiseyev.issuetracker.model.mapper.CommentMapper;
 import com.moiseyev.issuetracker.repository.CommentRepository;
+import com.moiseyev.issuetracker.repository.IssueRepository;
+import com.moiseyev.issuetracker.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,18 +23,18 @@ import java.util.List;
 @Service
 public class CommentService {
   private final CommentRepository commentRepository;
-  private final IssueService issueService;
-  private final UserService userService;
+  private final IssueRepository issueRepository;
+  private final UserRepository userRepository;
   private final CommentMapper commentMapper;
 
   @Autowired
   public CommentService(CommentRepository commentRepository,
-                        IssueService issueService,
-                        UserService userService,
+                        IssueRepository issueRepository,
+                        UserRepository userRepository,
                         CommentMapper commentMapper) {
     this.commentRepository = commentRepository;
-    this.issueService = issueService;
-    this.userService = userService;
+    this.issueRepository = issueRepository;
+    this.userRepository = userRepository;
     this.commentMapper = commentMapper;
   }
 
@@ -66,8 +70,12 @@ public class CommentService {
 
   @Transactional
   public CommentResponseDto createComment(CommentCreateDto commentCreateDto) {
-    Issue issue = issueService.getIssueById(commentCreateDto.getIssueId());
-    User author = userService.getUserById(commentCreateDto.getAuthorId());
+    Issue issue = issueRepository
+            .findById(commentCreateDto.getIssueId())
+            .orElseThrow(() -> new IssueNotFoundException(commentCreateDto.getIssueId()));
+    User author = userRepository
+            .findById(commentCreateDto.getAuthorId())
+            .orElseThrow(() -> new UserNotFoundException(commentCreateDto.getAuthorId()));
 
     Comment comment = new Comment();
     comment.setText(commentCreateDto.getText());
