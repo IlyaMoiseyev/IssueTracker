@@ -1,8 +1,8 @@
 package com.moiseyev.issuetracker.controller;
 
 import com.moiseyev.issuetracker.model.dto.UserCreateDto;
+import com.moiseyev.issuetracker.model.dto.UserResponseDto;
 import com.moiseyev.issuetracker.model.dto.UserUpdateDto;
-import com.moiseyev.issuetracker.model.entity.User;
 import com.moiseyev.issuetracker.service.UserService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -34,54 +34,54 @@ public class UserController {
   }
 
   @GetMapping
-  public ResponseEntity<List<User>> getAllUsers() {
+  public ResponseEntity<List<UserResponseDto>> getAllUsers() {
     log.info("IN: getAllUsers()");
-    List<User> users = userService.getAllUsers();
+    List<UserResponseDto> users = userService.getAllUsers();
     log.info("OUT: getAllUsers(). size = {}", users.size());
     return ResponseEntity.ok(users);
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<User> getUserById(@PathVariable Long id) {
+  public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
     log.info("IN: getUserById(). Params: id = {}", id);
-    User user = userService.getUserById(id);
-    log.info("OUT: getUserById(). Result: {}", user);
-    return ResponseEntity.ok(user);
+    UserResponseDto responseDto = userService.getUserById(id);
+    log.info("OUT: getUserById(). Result: {}", responseDto);
+    return ResponseEntity.ok(responseDto);
   }
 
   @PostMapping
-  public ResponseEntity<User> createUser(@Valid @RequestBody UserCreateDto dto,
-                                         BindingResult bindingResult) {
+  public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody UserCreateDto dto,
+                                                    BindingResult bindingResult) {
     if (bindingResult.hasErrors()) {
       log.warn("Validation failed: {}", bindingResult.getAllErrors());
       return ResponseEntity.badRequest().build();
     }
 
     log.info("IN: createUser()");
-    User user = userService.save(dto);
+    UserResponseDto responseDto = userService.save(dto);
 
     URI location = ServletUriComponentsBuilder
             .fromCurrentRequest()
             .path("/{id}")
-            .buildAndExpand(user.getId())
+            .buildAndExpand(responseDto.getId())
             .toUri();
 
-    log.info("OUT: createUser(). Result: {}", user);
-    return ResponseEntity.created(location).body(user);
+    log.info("OUT: createUser(). Result: {}", responseDto);
+    return ResponseEntity.created(location).body(responseDto);
   }
 
   @PutMapping
-  public ResponseEntity<User> updateUser(@Valid @RequestBody UserUpdateDto dto,
-                                         BindingResult bindingResult) {
+  public ResponseEntity<UserResponseDto> updateUser(@Valid @RequestBody UserUpdateDto dto,
+                                                    BindingResult bindingResult) {
     if (bindingResult.hasErrors()) {
       log.warn("Validation failed: {}", bindingResult.getAllErrors());
       return ResponseEntity.badRequest().build();
     }
 
     log.info("IN: updateUser(). Params: id = {}", dto.getId());
-    User user = userService.update(dto);
-    log.info("OUT: updateUser().  Result: {}", user);
-    return ResponseEntity.ok(user);
+    UserResponseDto updatedUser = userService.update(dto);
+    log.info("OUT: updateUser().  Result: {}", updatedUser);
+    return ResponseEntity.ok(updatedUser);
   }
 
   @DeleteMapping("/{id}")
