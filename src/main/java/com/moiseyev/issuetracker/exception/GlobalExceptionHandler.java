@@ -10,6 +10,24 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+  @ExceptionHandler(TagNotAssignedException.class)
+  public ResponseEntity<String> tagNotAssignedException(TagNotAssignedException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+  }
+
+  @ExceptionHandler(TagAlreadyAssignedException.class)
+  public ResponseEntity<String> tagAlreadyAssignedException(TagAlreadyAssignedException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+  }
+
+  @ExceptionHandler(TagNotFoundException.class)
+  public ResponseEntity<String> tagNotFoundException(TagNotFoundException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+  }
+
   @ExceptionHandler(CommentNotFoundException.class)
   public ResponseEntity<String> commentNotFoundException(CommentNotFoundException e) {
     log.error("ExceptionHandler: " + e);
