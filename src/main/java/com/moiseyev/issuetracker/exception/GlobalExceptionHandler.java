@@ -1,15 +1,42 @@
 package com.moiseyev.issuetracker.exception;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<String> accessDeniedExceptionExceptionHandler(AccessDeniedException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.FORBIDDEN);
+  }
+
+  @ExceptionHandler(JwtException.class)
+  public ResponseEntity<String> jwtExceptionHandler(JwtException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
+  }
+
+  @ExceptionHandler(RegistrationException.class)
+  public ResponseEntity<String> registrationException(RegistrationException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(AuthenticationException.class)
+  public ResponseEntity<String> authenticationException(AuthenticationException e) {
+    log.error("ExceptionHandler: " + e);
+    return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
+  }
+
   @ExceptionHandler(TagNotAssignedException.class)
   public ResponseEntity<String> tagNotAssignedException(TagNotAssignedException e) {
     log.error("ExceptionHandler: " + e);
