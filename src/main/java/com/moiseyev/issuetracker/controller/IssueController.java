@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,14 +35,15 @@ public class IssueController {
   }
 
   @GetMapping
-  public ResponseEntity<List<IssueResponseDto>> getAllIssues() {
+  public ResponseEntity<List<IssueResponseDto>> getAllIssuesForCurrentUser() {
     log.info("IN: getAllIssues()");
-    List<IssueResponseDto> issueList = issueService.getAllIssues();
+    List<IssueResponseDto> issueList = issueService.getAllIssuesForCurrentUser();
     log.info("OUT: getAllIssues().  Result: list size = {} ", issueList.size());
     return ResponseEntity.ok(issueList);
   }
 
   @GetMapping("/{id}")
+  @PreAuthorize("@accessService.canViewIssue(#id)")
   public ResponseEntity<IssueResponseDto> getIssueById(@PathVariable Long id) {
     log.info("IN: getIssueById(). Params: id = {}", id);
     IssueResponseDto issue = issueService.getIssueById(id);
@@ -69,6 +71,7 @@ public class IssueController {
   }
 
   @PutMapping
+  @PreAuthorize("@accessService.canModifyIssue(#issueUpdateDto.id)")
   public ResponseEntity<IssueResponseDto> updateIssue(@RequestBody @Valid IssueUpdateDto issueUpdateDto,
                                                       BindingResult bindingResult) {
     if (bindingResult.hasErrors()) {
@@ -83,6 +86,7 @@ public class IssueController {
   }
 
   @DeleteMapping("/{id}")
+  @PreAuthorize("@accessService.canModifyIssue(#id)")
   public ResponseEntity<Void> deleteIssueById(@PathVariable Long id) {
     log.info("IN: deleteIssueById(). Params: id = {}", id);
     issueService.deleteIssueById(id);

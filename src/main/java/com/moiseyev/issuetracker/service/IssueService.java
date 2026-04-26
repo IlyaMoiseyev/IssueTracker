@@ -14,6 +14,7 @@ import com.moiseyev.issuetracker.model.entity.User;
 import com.moiseyev.issuetracker.model.mapper.IssueMapper;
 import com.moiseyev.issuetracker.repository.IssueRepository;
 import com.moiseyev.issuetracker.repository.UserRepository;
+import com.moiseyev.issuetracker.security.AuthUserService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,29 +32,43 @@ public class IssueService {
   private final UserRepository userRepository;
   private final IssueHistoryService issueHistoryService;
   private final IssueMapper issueMapper;
+  private final AuthUserService authUserService;
 
   @Autowired
   public IssueService(IssueRepository issueRepository,
                       IssueStatusService issueStatusService,
                       IssuePriorityService issuePriorityService,
                       UserRepository userRepository,
-                      IssueHistoryService issueHistoryService, IssueMapper issueMapper) {
+                      IssueHistoryService issueHistoryService, IssueMapper issueMapper, AuthUserService authUserService) {
     this.issueRepository = issueRepository;
     this.issueStatusService = issueStatusService;
     this.issuePriorityService = issuePriorityService;
     this.userRepository = userRepository;
     this.issueHistoryService = issueHistoryService;
     this.issueMapper = issueMapper;
+    this.authUserService = authUserService;
   }
 
-  public List<IssueResponseDto> getAllIssues() {
-    List<IssueResponseDto> issues = issueRepository
-            .findAll()
-            .stream()
+  public List<IssueResponseDto> getAllIssuesForCurrentUser() {
+    User currentUser = authUserService.getCurrentUser();
+    List<Issue> issues;
+
+    switch (currentUser.getRole().getName()) {
+      case ADMIN -> issues = issueRepository.findAll();
+      case REPORTER -> issues = issueRepository.findByReporterId(currentUser.getId());
+      case DEVELOPER -> issues = issueRepository.findByAssigneeId(currentUser.getId());
+      default -> issues = List.of();
+    }
+
+    List<IssueResponseDto> issueList = issues.stream()
             .map(issueMapper::toResponseDto)
             .toList();
-    if (issues.isEmpty()) throw new EmptyIssueListException(issues.size());
-    return issues;
+
+    if (issueList.isEmpty()) {
+      throw new EmptyIssueListException(issueList.size());
+    }
+
+    return issueList;
   }
 
   public IssueResponseDto getIssueById(Long id) {
@@ -65,9 +80,8 @@ public class IssueService {
   public IssueResponseDto createIssue(IssueCreateDto issueCreateDto) {
     IssueStatus status = issueStatusService.getIssueStatusByName(issueCreateDto.getStatus());
     IssuePriority priority = issuePriorityService.getIssuePriorityByName(issueCreateDto.getPriority());
-    User reporter = userRepository
-            .findById(issueCreateDto.getReporterId())
-            .orElseThrow(() -> new UserNotFoundException(issueCreateDto.getReporterId()));
+    User reporter =  authUserService.getCurrentUser();
+
     User assignee = issueCreateDto.getAssigneeId() != null
             ? userRepository.findById(issueCreateDto.getAssigneeId())
             .orElseThrow(() -> new UserNotFoundException(issueCreateDto.getAssigneeId()))
@@ -115,13 +129,6 @@ public class IssueService {
             (!issue.getPriority().equals(issuePriorityService.getIssuePriorityByName(issueUpdateDto.getPriorityType())))) {
       issueHistoryService.recordPriorityHistory(issue, issueUpdateDto);
       issue.setPriority(issuePriorityService.getIssuePriorityByName(issueUpdateDto.getPriorityType()));
-      hasChanges = true;
-    }
-    if (issueUpdateDto.getReporterId() != null && !issue.getReporter().getId().equals(issueUpdateDto.getReporterId())) {
-      issueHistoryService.recordReporterIdHistory(issue, issueUpdateDto);
-      User reporter = userRepository.findById(issueUpdateDto.getReporterId())
-              .orElseThrow(() -> new UserNotFoundException(issueUpdateDto.getReporterId()));
-      issue.setReporter(reporter);
       hasChanges = true;
     }
     if (issueUpdateDto.getAssigneeId() != null) {

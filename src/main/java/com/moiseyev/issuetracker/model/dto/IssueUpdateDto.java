@@ -20,8 +20,5 @@ public class IssueUpdateDto {
 
   private String priorityType;
 
-  @NotNull
-  private Long reporterId;
-
   private Long assigneeId;
 }
