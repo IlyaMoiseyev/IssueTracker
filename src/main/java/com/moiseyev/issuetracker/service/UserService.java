@@ -2,8 +2,10 @@ package com.moiseyev.issuetracker.service;
 
 import com.moiseyev.issuetracker.exception.EmailAlreadyExistsException;
 import com.moiseyev.issuetracker.exception.LoginAlreadyExistsException;
+import com.moiseyev.issuetracker.exception.RegistrationException;
 import com.moiseyev.issuetracker.exception.UserNotFoundException;
 import com.moiseyev.issuetracker.exception.UserUpdateException;
+import com.moiseyev.issuetracker.model.dto.CurrentUserUpdateDto;
 import com.moiseyev.issuetracker.model.dto.UserCreateDto;
 import com.moiseyev.issuetracker.model.dto.UserResponseDto;
 import com.moiseyev.issuetracker.model.dto.UserUpdateDto;
@@ -12,9 +14,11 @@ import com.moiseyev.issuetracker.model.entity.User;
 import com.moiseyev.issuetracker.model.enums.RoleType;
 import com.moiseyev.issuetracker.model.mapper.UserMapper;
 import com.moiseyev.issuetracker.repository.UserRepository;
+import com.moiseyev.issuetracker.security.AuthUserService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -26,12 +30,17 @@ public class UserService {
   private final UserRepository userRepository;
   private final RoleService roleService;
   private final UserMapper userMapper;
+  private final PasswordEncoder passwordEncoder;
+  private final AuthUserService authUserService;
+  private static final String PASSWORD_PATTERN = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$";
 
   @Autowired
-  public UserService(UserRepository userRepository, RoleService roleService, UserMapper userMapper) {
+  public UserService(UserRepository userRepository, RoleService roleService, UserMapper userMapper, PasswordEncoder passwordEncoder, AuthUserService authUserService) {
     this.userRepository = userRepository;
     this.roleService = roleService;
     this.userMapper = userMapper;
+    this.passwordEncoder = passwordEncoder;
+    this.authUserService = authUserService;
   }
 
   public List<UserResponseDto> getAllUsers() {
@@ -56,11 +65,14 @@ public class UserService {
       dto.setRoleType(RoleType.REPORTER.toString());
     }
     Role role = roleService.findRoleByName(dto.getRoleType());
-
+    if (role.getName() == RoleType.ADMIN) {
+      log.warn("attempt to create a user with a role: {}", role.getName());
+      throw new RegistrationException("Can not assign the role " + role.getName());
+    }
     User user = new User();
     user.setLogin(dto.getLogin());
     user.setEmail(dto.getEmail());
-    user.setPassword(dto.getPassword());
+    user.setPassword(passwordEncoder.encode(dto.getPassword()));
     user.setCreatedAt(Instant.now());
     user.setUpdatedAt(Instant.now());
     user.setRole(role);
@@ -89,8 +101,9 @@ public class UserService {
       log.info("Email changed to: {}", dto.getEmail());
     }
 
-    if (!user.getPassword().equals(dto.getPassword())) {
-      user.setPassword(dto.getPassword());
+    if (dto.getPassword() != null && !dto.getPassword().isBlank()
+            && !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+      user.setPassword(passwordEncoder.encode(dto.getPassword()));
       hasChanges = true;
       log.info("Password changed");
     }
@@ -103,6 +116,39 @@ public class UserService {
     log.info("Updating user with id = {}", dto.getId());
     User updatedUser = userRepository.saveAndFlush(user);
     return userMapper.toResponseDto(updatedUser);
+  }
+
+  @Transactional
+  public UserResponseDto updateCurrentUser(CurrentUserUpdateDto dto) {
+    User currentUser = authUserService.getCurrentUser();
+    boolean hasChanges = false;
+
+    if (dto.getEmail() != null
+            && !dto.getEmail().isBlank()
+            && !currentUser.getEmail().equals(dto.getEmail())) {
+      validateEmailUniqueness(currentUser.getId(), dto.getEmail());
+      currentUser.setEmail(dto.getEmail());
+      hasChanges = true;
+    }
+
+    if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+      if (!passwordEncoder.matches(dto.getPassword(), currentUser.getPassword())) {
+        if (!dto.getPassword().matches(PASSWORD_PATTERN)) {
+          throw new IllegalArgumentException(
+                  "Password must contain at least 8 characters, one letter and one digit"
+          );
+        }
+        currentUser.setPassword(passwordEncoder.encode(dto.getPassword()));
+        hasChanges = true;
+      }
+    }
+
+    if (!hasChanges) {
+      throw new UserUpdateException(currentUser.getId());
+    }
+
+    currentUser.setUpdatedAt(Instant.now());
+    return userMapper.toResponseDto(userRepository.save(currentUser));
   }
 
   @Transactional

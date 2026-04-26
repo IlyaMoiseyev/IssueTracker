@@ -1,5 +1,6 @@
 package com.moiseyev.issuetracker.controller;
 
+import com.moiseyev.issuetracker.model.dto.CurrentUserUpdateDto;
 import com.moiseyev.issuetracker.model.dto.UserCreateDto;
 import com.moiseyev.issuetracker.model.dto.UserResponseDto;
 import com.moiseyev.issuetracker.model.dto.UserUpdateDto;
@@ -8,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +35,7 @@ public class UserController {
     this.userService = userService;
   }
 
+  @PreAuthorize("hasRole('ADMIN')")
   @GetMapping
   public ResponseEntity<List<UserResponseDto>> getAllUsers() {
     log.info("IN: getAllUsers()");
@@ -41,6 +44,7 @@ public class UserController {
     return ResponseEntity.ok(users);
   }
 
+  @PreAuthorize("hasRole('ADMIN')")
   @GetMapping("/{id}")
   public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
     log.info("IN: getUserById(). Params: id = {}", id);
@@ -70,6 +74,7 @@ public class UserController {
     return ResponseEntity.created(location).body(responseDto);
   }
 
+  @PreAuthorize("hasRole('ADMIN')")
   @PutMapping
   public ResponseEntity<UserResponseDto> updateUser(@Valid @RequestBody UserUpdateDto dto,
                                                     BindingResult bindingResult) {
@@ -84,6 +89,15 @@ public class UserController {
     return ResponseEntity.ok(updatedUser);
   }
 
+  @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER','REPORTER')")
+  @PutMapping("/current")
+  public ResponseEntity<UserResponseDto> updateCurrentUser(@Valid @RequestBody CurrentUserUpdateDto currentUserDto) {
+    log.info("IN: updateCurrentUser()");
+    UserResponseDto updatedCurrentUser = userService.updateCurrentUser(currentUserDto);
+    return ResponseEntity.ok(updatedCurrentUser);
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
     log.info("IN: deleteUser(). Params: id = {}", id);

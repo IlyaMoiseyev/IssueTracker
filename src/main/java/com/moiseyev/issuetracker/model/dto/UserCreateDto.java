@@ -19,7 +19,7 @@ public class UserCreateDto {
   private String email;
 
   @NotBlank
-  @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\\\d)[A-Za-z\\\\d]{8,}$",
+  @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$",
           message = "Invalid password format")
   private String password;
   private String roleType;
