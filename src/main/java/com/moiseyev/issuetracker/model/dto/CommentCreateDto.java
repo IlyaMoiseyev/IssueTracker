@@ -6,12 +6,9 @@ import lombok.Data;
 
 @Data
 public class CommentCreateDto {
-  @NotBlank
-  private String text;
-
   @NotNull
   private Long issueId;
 
-  @NotNull
-  private Long authorId;
+  @NotBlank
+  private String text;
 }

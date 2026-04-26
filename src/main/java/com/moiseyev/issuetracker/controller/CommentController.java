@@ -3,13 +3,12 @@ package com.moiseyev.issuetracker.controller;
 import com.moiseyev.issuetracker.model.dto.CommentCreateDto;
 import com.moiseyev.issuetracker.model.dto.CommentResponseDto;
 import com.moiseyev.issuetracker.model.dto.CommentUpdateDto;
-import com.moiseyev.issuetracker.model.entity.Comment;
 import com.moiseyev.issuetracker.service.CommentService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,6 +35,7 @@ public class CommentController {
   }
 
   @GetMapping("{id}")
+  @PreAuthorize("@accessService.canViewComment(#id)")
   public ResponseEntity<CommentResponseDto> getCommentById(@PathVariable Long id) {
     log.info("IN: getCommentById(). Params: id = {}", id);
     CommentResponseDto comment = commentService.getCommentById(id);
@@ -44,6 +44,7 @@ public class CommentController {
   }
 
   @GetMapping
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<List<CommentResponseDto>> getAllComments() {
     log.info("IN: getAllComments()");
     List<CommentResponseDto> allComments = commentService.getAllComments();
@@ -51,6 +52,7 @@ public class CommentController {
   }
 
   @GetMapping("/issue/{issueId}")
+  @PreAuthorize("@accessService.canViewIssue(#issueId)")
   public ResponseEntity<List<CommentResponseDto>> getAllCommentsForIssue(@PathVariable Long issueId) {
     log.info("IN: getAllCommentsForIssue(). Params: issueId = {}", issueId);
     List<CommentResponseDto> commentList = commentService.getCommentsForIssue(issueId);
@@ -77,6 +79,7 @@ public class CommentController {
   }
 
   @PutMapping
+  @PreAuthorize("@accessService.canModifyComment(#commentUpdateDto.id)")
   public ResponseEntity<CommentResponseDto> updateComment(@RequestBody @Valid CommentUpdateDto commentUpdateDto,
                                                           BindingResult bindingResult) {
     log.info("IN: updateComment(). Params: id = {}", commentUpdateDto.getId());
@@ -90,6 +93,7 @@ public class CommentController {
   }
 
   @DeleteMapping("/{id}")
+  @PreAuthorize("@accessService.canModifyComment(#id)")
   public ResponseEntity<Void> deleteComment(@PathVariable Long id) {
     log.info("IN: deleteComment(). Params: deleting comment with id = {}", id);
     commentService.deleteCommentById(id);
