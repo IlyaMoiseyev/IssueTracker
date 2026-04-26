@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +29,7 @@ public class IssueTagController {
   }
 
   @GetMapping("/{issueId}/tag")
+  @PreAuthorize("@accessService.canViewTags(#issueId)")
   public ResponseEntity<List<Tag>> getTagsForIssue(@PathVariable Long issueId) {
     log.info("IN: getTagsForIssue(). Params: issueId = {}", issueId);
     List<Tag> tags = issueTagService.getTagsForIssue(issueId);
@@ -36,6 +38,7 @@ public class IssueTagController {
   }
 
   @GetMapping("/search/tag/{tagName}")
+  @PreAuthorize("isAuthenticated()")
   public ResponseEntity<List<IssueResponseDto>> getIssuesByTag(@PathVariable String tagName) {
     log.info("IN: getIssuesByTag(). Params: tagName = {}", tagName);
     List<IssueResponseDto> issuesList = issueTagService.getIssuesByTag(tagName);
@@ -44,6 +47,7 @@ public class IssueTagController {
   }
 
   @PostMapping("/{issueId}/tag/{tagName}")
+  @PreAuthorize("@accessService.canManageTags(#issueId)")
   public ResponseEntity<Void> addTagToIssue(@PathVariable Long issueId, @PathVariable String tagName) {
     log.info("IN: addTagToIssue(). Params: issueId = {}, tag = {}", issueId, tagName);
     issueTagService.addTagToIssue(issueId, tagName);
@@ -52,6 +56,7 @@ public class IssueTagController {
   }
 
   @DeleteMapping("/{issueId}/tag/{tagName}")
+  @PreAuthorize("@accessService.canManageTags(#issueId)")
   public ResponseEntity<Void> removeTagFromIssue(@PathVariable Long issueId, @PathVariable String tagName) {
     log.info("IN: removeTagFromIssue(). Params: issueId = {}, tag = {}", issueId, tagName);
     issueTagService.removeTagFromIssue(issueId, tagName);
