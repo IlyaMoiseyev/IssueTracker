@@ -12,6 +12,7 @@ import com.moiseyev.issuetracker.model.entity.User;
 import com.moiseyev.issuetracker.model.mapper.IssueHistoryMapper;
 import com.moiseyev.issuetracker.repository.IssueHistoryRepository;
 import com.moiseyev.issuetracker.repository.UserRepository;
+import com.moiseyev.issuetracker.security.AuthUserService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,13 +27,15 @@ public class IssueHistoryService {
   private final IssueHistoryRepository issueHistoryRepository;
   private final UserRepository userRepository;
   private final IssueHistoryMapper issueHistoryMapper;
+  private final AuthUserService authUserService;
 
   @Autowired
   public IssueHistoryService(IssueHistoryRepository issueHistoryRepository,
-                             UserRepository userRepository, IssueHistoryMapper issueHistoryMapper) {
+                             UserRepository userRepository, IssueHistoryMapper issueHistoryMapper, AuthUserService authUserService) {
     this.issueHistoryRepository = issueHistoryRepository;
     this.userRepository = userRepository;
     this.issueHistoryMapper = issueHistoryMapper;
+    this.authUserService = authUserService;
   }
 
   public List<IssueHistoryResponseDto> getAllHistoryRecords() {
@@ -94,7 +97,7 @@ public class IssueHistoryService {
             "title",
             issue.getTitle(),
             issueUpdateDto.getTitle(),
-            issueUpdateDto.getReporterId()
+            authUserService.getCurrentUserId()
     ));
   }
 
@@ -104,7 +107,7 @@ public class IssueHistoryService {
             issue.getId(), "description",
             issue.getDescription(),
             issueUpdateDto.getDescription(),
-            issueUpdateDto.getReporterId()
+            authUserService.getCurrentUserId()
     ));
   }
 
@@ -115,7 +118,7 @@ public class IssueHistoryService {
             "status",
             issue.getStatus().getName().toString(),
             issueUpdateDto.getStatusType().toUpperCase(),
-            issueUpdateDto.getReporterId()
+            authUserService.getCurrentUserId()
     ));
   }
 
@@ -126,18 +129,7 @@ public class IssueHistoryService {
             "priority",
             issue.getPriority().getName().toString(),
             issueUpdateDto.getPriorityType().toUpperCase(),
-            issueUpdateDto.getReporterId()
-    ));
-  }
-
-  @Transactional
-  public void recordReporterIdHistory(Issue issue, IssueUpdateDto issueUpdateDto) {
-    recordChange(issue, new IssueHistoryRecordDto(
-            issue.getId(),
-            "reporterId",
-            issue.getReporter().getId().toString(),
-            issueUpdateDto.getReporterId().toString(),
-            issueUpdateDto.getReporterId()
+            authUserService.getCurrentUserId()
     ));
   }
 
@@ -154,7 +146,7 @@ public class IssueHistoryService {
             "assigneeId",
             oldAssigneeId,
             newAssigneeId,
-            issueUpdateDto.getReporterId()
+            authUserService.getCurrentUserId()
     ));
   }
 }

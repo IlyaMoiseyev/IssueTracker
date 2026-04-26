@@ -5,6 +5,7 @@ import com.moiseyev.issuetracker.service.IssueHistoryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +25,7 @@ public class IssueHistoryController {
   }
 
   @GetMapping
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<List<IssueHistoryResponseDto>> getAllHistoryRecords() {
     log.info("IN: getAllHistoryRecords()");
     List<IssueHistoryResponseDto> historyRecordsList = issueHistoryService.getAllHistoryRecords();
@@ -32,6 +34,7 @@ public class IssueHistoryController {
   }
 
   @GetMapping("{historyId}")
+  @PreAuthorize("@accessService.canViewHistoryRecord(#historyId)")
   public ResponseEntity<IssueHistoryResponseDto> getHistoryById(@PathVariable Long historyId) {
     log.info("IN: getHistoryById(). Params: historyId = {}", historyId);
     IssueHistoryResponseDto issueHistoryResponseDto = issueHistoryService.getHistoryById(historyId);
@@ -40,6 +43,7 @@ public class IssueHistoryController {
   }
 
   @GetMapping("/issue/{issueId}")
+  @PreAuthorize("@accessService.canViewHistoryForIssue(#issueId)")
   public ResponseEntity<List<IssueHistoryResponseDto>> getAllHistoryForIssue(@PathVariable Long issueId) {
     log.info("IN: getAllHistoryForIssue(). Params: issueId = {}", issueId);
     List<IssueHistoryResponseDto> issueHistoryList = issueHistoryService.getHistoryForIssue(issueId);
