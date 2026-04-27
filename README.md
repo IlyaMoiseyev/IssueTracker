@@ -16,6 +16,7 @@ tracking and control of the workflow in development teams.
 * **Migrations:** Flyway
 * **ORM:** Spring Data JPA, Hibernate
 * **Logging:** SLF4J + Lombok
+* **Documentation:** Swagger UI / OpenAPI 3.0
 * **Build:** Maven
 
 ## ✨ Features
@@ -142,7 +143,6 @@ mvn spring-boot:run
 |----------|-----------------------------------|------------|-------------------------------|
 | `GET`    | `/issues/{issueId}/tag`           | By rights  | Task tags                     |
 | `GET`    | `/issues/search/tag/{tagName}`    | Authorized | Search for issues by tag      |
-| `GET`    | `/history/issue/{issueId}`        | By rights  | Issue change history          |
 | `POST`   | `/issues/{issueId}/tag/{tagName}` | By rights  | Add a tag to an issue         |
 | `DELETE` | `/issues/{issueId}/tag/{tagName}` | By rights  | Remove the tag from the issue |
 
